@@ -149,7 +149,7 @@ def lambda_handler(event, context):
 if __name__ == '__main__':
     test_event = {
         'queryStringParameters': {
-            'start_date': '2025-03-03',
+            'start_date': '2025-03-01',
             'end_date': '2025-03-31',
             'regions': 'us-east-1',
             'format': 'json'
