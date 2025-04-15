@@ -24,13 +24,15 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build, tag, and push Docker image
+      env:
+        IMAGE_URI: ${{ secrets.ECR_REPOSITORY }}:latest
       run: |
-        IMAGE_URI=${{ secrets.ECR_REPOSITORY }}:latest
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
+        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
     - name: Update Lambda function to use new image
       run: |
         aws lambda update-function-code \
           --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
-          --image-uri ${{ secrets.ECR_REPOSITORY }}:latest
+          --image-uri ${{ env.IMAGE_URI }}
