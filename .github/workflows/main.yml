@@ -23,15 +23,29 @@ jobs:
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push Docker image
+    - name: Build and push Docker image to ECR
       run: |
         ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        ECR_REGISTRY="$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
-        IMAGE_URI="$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:latest"
-        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+        REGION=${{ secrets.AWS_REGION }}
+        REPO=${{ secrets.ECR_REPOSITORY }}
+        IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO:latest"
 
+        # Build and push the image
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
+
+    - name: Get image digest from ECR
+      id: digest
+      run: |
+        REGION=${{ secrets.AWS_REGION }}
+        REPO=${{ secrets.ECR_REPOSITORY }}
+        DIGEST=$(aws ecr describe-images \
+          --repository-name $REPO \
+          --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageDigest' \
+          --output text)
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO@$DIGEST"
+        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
     - name: Update Lambda function to use new image
       run: |
